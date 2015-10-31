@@ -10,23 +10,23 @@ type NterTagImJahr = Int
 -- days passed since then
 wochentag :: ErsterJaenner -> Schaltjahr -> NterTagImJahr -> Wochentag
 wochentag ej sj ntij
-	| e >= 0 && ntij > 0 && ntij <= u	= dind (mod (e + ntij - 1) 7)
-	| otherwise							= "Falsche Argumente"
-	where
-		e = days ej
-		u = if sj then 366 else 365
+        | e >= 0 && ntij > 0 && ntij <= u = dind (mod (e + ntij - 1) 7)
+        | otherwise                       = "Falsche Argumente"
+        where
+                e = days ej
+                u = if sj then 366 else 365
 
 -- Days of the week lookup function
 days :: String -> Int
-days "Sonntag"		= 0
-days "Montag"		= 1
-days "Dienstag"		= 2
-days "Mittwoch"		= 3
-days "Donnerstag"	= 4
-days "Freitag"		= 5
-days "Samstag"		= 6
-days "Sonnabend"	= 6
-days _				= -1
+days "Sonntag"          = 0
+days "Montag"           = 1
+days "Dienstag"         = 2
+days "Mittwoch"         = 3
+days "Donnerstag"       = 4
+days "Freitag"          = 5
+days "Samstag"          = 6
+days "Sonnabend"        = 6
+days _                  = -1
 
 -- Index to days of the week
 dind :: Int -> String
@@ -47,8 +47,8 @@ dind 6 = "Samstag"
 -- Calculation by using simpler form of n!/(n-r)!
 vc :: Integer -> Integer -> Integer
 vc n r
-	| n >= r && r >= 0	= foldl (*) 1 [n-r+1..n]
-	| otherwise			= -1
+        | n >= r && r >= 0      = foldl (*) 1 [n-r+1..n]
+        | otherwise                     = -1
 
 -- Calculate variation, uncurried, by using uncurry function
 vuc :: (Integer, Integer) -> Integer
@@ -68,23 +68,24 @@ frequencySort s = ts (freq 1 (qs s))
 -- (Char,Integer) list. The previously created list should be sorted
 -- by the characters and numbered
 freq :: Integer -> String -> [(Char,Integer)]
-freq _ []			= []
-freq n (x:[]) 		= [(x,n)]
+freq _ []                       = []
+freq n (x:[])           = [(x,n)]
 freq n (x:xs)
-	| x /= head xs	= [(x,n)] ++ freq 1 xs
-	| otherwise		= freq (n+1) xs
+        | x /= head xs  = [(x,n)] ++ freq 1 xs
+        | otherwise             = freq (n+1) xs
 
 -- A simple quicksort for sorting letters
 qs :: String -> String
-qs []     		= []
-qs (x:xs) 		= qs (filter (< x) xs) ++ [x] ++ qs (filter (>= x) xs)
+qs []                   = []
+qs (x:xs)               = qs (filter (< x) xs) ++ [x] ++ 
+                          qs (filter (>= x) xs)
 
--- Simple tuple quicksort and replication		
+-- Simple tuple quicksort and replication               
 ts :: [(Char,Integer)] -> String
-ts []			= []
-ts ((x,y):xs) 	= ts (filter ((< y).snd) xs) ++ repI x y ++
-					ts (filter ((>= y).snd) xs)
-					
+ts []                   = []
+ts ((x,y):xs)   = ts (filter ((< y).snd) xs) ++ repI x y ++
+                                        ts (filter ((>= y).snd) xs)
+                                        
 -- Replicate for Integer
 repI :: Char -> Integer -> String
 repI _ 0 = []
