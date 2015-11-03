@@ -88,8 +88,12 @@ dist :: DistanceAtDetection -> Speed -> Speed -> TimeBeforeCollision ->
         Distance
 dist d v1 v2 t
         | d >= 0 && v1 >= 0 && 
-          v2 >= 0 && t >= 0     = 0
-        | otherwise             = -1
+          v2 >= 0 && t >= 0 && 
+          tcheck >= fromIntegral t			    = floor(sol + 0.5)
+        | otherwise                             = -1
+        where
+            tcheck = d / (v1 + v2)
+            sol = (v1 * fromIntegral t) + (v2 * fromIntegral t)
 
 -----------
 -- PART 4
