@@ -78,10 +78,11 @@ date and the day of the week for the other given date
   PART 2
 -----------
 
-Count the number of lower case letters in a string
+Count the number of lower vocal letters in a string
 
 > lower :: String -> Int
-> lower xs = length (filter (\x -> x >= 'a' && x <= 'z') xs)
+> lower xs = length (filter (\x -> x == 'a' || x == 'i' ||
+>                      x == 'u' || x == 'o' || x == 'e') xs)
 
 Simple quicksort
 
@@ -95,34 +96,37 @@ qs (x:xs) = qs (filter (< x) xs) ++ [x] ++
 > qs (x:xs) = qs (filter (< x) xs) ++ [x] ++
 >             qs (filter (>= x) xs)
         
-Remove duplicates from (sorted) list
+Get element frequencies from list
 
-> rdup :: [String] -> [String]
-> rdup []          = []
-> rdup (x:[])      = [x]
-> rdup (x:xs)
->   | x /= head xs = [x] ++ rdup xs
->   | otherwise    = rdup xs
+> efreq :: Integer -> [String] -> [(Integer,String)]
+> efreq _ []        = []
+> efreq n (x:[])    = [(n,x)]
+> efreq n (x:xs)
+>   | x /= head xs = [(n,x)] ++ efreq 1 xs
+>   | otherwise    = efreq (n+1) xs
 
 Count number of distinct elements with more or equal
 than three letters
 
 > pwv :: [String] -> Int
-> pwv xs = length (rdup (qs (filter (\x -> lower x >= 3) xs)))
+> pwv xs = length (filter ((==1).fst) (efreq 1 (qs
+>          (filter (\x -> lower x >= 3) xs))))
 
 Count number of unique elements with more or equal
 than three letters
 
-> pwvu :: [String] -> Int
-> pwvu xs = length (filter ((==1).sn) (freq 1
->           (qs (zip (filter (\x -> lower x >= 3) xs) [0..]))))
+TODO: Implement frequency function
+
+pwvu :: [String] -> Int
+pwvu xs = length (filter ((==1).sn) (freq 1
+           (qs (zip (filter (\x -> lower x >= 3) xs) [0..]))))
 
 -----------
   PART 3
 -----------
 
-Count frequency of strings in a list, together with
-the position in the list (as tuple)
+Count frequency of strings in a list, but don't alter the
+list (TODO)
 
 > freq :: Integer -> [(String, Integer)] ->
 >         [(Integer,Integer,String)]
@@ -146,8 +150,8 @@ and insert
 
 > streamline :: [String] -> Int -> [String]
 > streamline xs n
->  | n > 0     = [tr x | x <- (filter ((==ni).sn) (freq 1 (qs
->                  (zip xs [0..]))))]
+>  | n > 0     = [tr x  | x <- (filter ((==ni).sn) (qs (freq 1
+>                (qs (zip xs [0..])))))]
 >  | otherwise = []
 >  where
 >    ni = toInteger n
