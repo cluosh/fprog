@@ -109,17 +109,8 @@ Count number of distinct elements with more or equal
 than three letters
 
 > pwv :: [String] -> Int
-> pwv xs = length (filter ((==1).fst) (efreq 1 (qs
->          (filter (\x -> lower x >= 3) xs))))
-
-Count number of unique elements with more or equal
-than three letters
-
-TODO: Implement frequency function
-
-pwvu :: [String] -> Int
-pwvu xs = length (filter ((==1).sn) (freq 1
-           (qs (zip (filter (\x -> lower x >= 3) xs) [0..]))))
+> pwv xs = length (efreq 1 (qs (filter
+>           (\x -> lower x >= 3) xs)))
 
 -----------
   PART 3
