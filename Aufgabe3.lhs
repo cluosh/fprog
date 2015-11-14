@@ -1,3 +1,5 @@
+> module Aufgabe3 where
+
 -----------
   PART 1
 -----------
@@ -116,17 +118,6 @@ than three letters
   PART 3
 -----------
 
-Count frequency of strings in a list, but don't alter the
-list (TODO)
-
-> freq :: Integer -> [(String, Integer)] ->
->         [(Integer,Integer,String)]
-> freq _ []         = []
-> freq n (x:[])     = [(snd x, n, fst x)]
-> freq n (x:xs)
->   | fst x /= fst (head xs)  = [(snd x, n, fst x)] ++ freq 1 xs
->   | otherwise               = freq (n+1) xs
-
 Selector functions for triple
 
 > fs :: (a,b,c) -> a
@@ -136,16 +127,39 @@ Selector functions for triple
 > tr :: (a,b,c) -> c
 > tr (_,_,c) = c
 
-Create a frequency table (including number of original position)
-and insert 
+Count frequency of strings in a list, with order
+
+> freq :: [(String,Integer)] -> (Integer, String, [Integer]) -> 
+>         [(Integer, String, [Integer])]
+> freq [] _             = []
+> freq (x:[]) (a,b,c)   = [(a + 1,b,c ++ [snd x])]
+> freq (x:xs) (a,b,c)
+>   | fst x /= fst (head xs) = [(a + 1,b, c ++ [snd x])] ++
+>                              freq xs (0,fst (head xs),[])
+>   | otherwise              = freq xs (a + 1,b,c ++ [snd x])
+
+Expand the previously created frequency table again
+
+> expand :: [(Integer, String, [Integer])] -> Integer -> 
+>           [(Integer, String)]
+> expand [] _     = []
+> expand (x:xs) i
+>   | fs x == i   = [(y,z) | z <- [sn x], y <- tr x] ++ expand xs i
+>   | otherwise   = expand xs i
+
+Implement the streamline function using several quicksorts and
+a frequency table with the saved position of the characters
 
 > streamline :: [String] -> Int -> [String]
+> streamline [] _ = []
 > streamline xs n
->  | n > 0     = [tr x  | x <- (filter ((==ni).sn) (qs (freq 1
->                (qs (zip xs [0..])))))]
->  | otherwise = []
->  where
->    ni = toInteger n
+>   | n > 0       = [snd x | x <- exp]
+>   | otherwise   = []
+>   where
+>     ni = toInteger n
+>     sorted = qs (zip xs [0..])
+>     freql = freq sorted (0,fst (head sorted), [])
+>     exp = qs (expand freql ni)
 
 -----------
   PART 4
