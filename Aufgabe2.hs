@@ -1,3 +1,5 @@
+module Aufgabe2 where
+
 -----------
 -- PART 1
 -----------
@@ -117,8 +119,9 @@ checkDate (d,2) sj
   | d > 0 && d <= 28        = True
   | otherwise               = False
 checkDate (d,m) _
-  | m > 0 && d > 0 && d <= 31  = True
-  | otherwise                  = False
+  | m > 0 && m <= 12 &&
+    d > 0 && d <= 31        = True
+  | otherwise               = False
 
 -- Sum up days till given date
 sumDate :: Datum -> Schaltjahr -> Int

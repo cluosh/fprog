@@ -24,8 +24,9 @@ is valid, probably not a good idea
 >  | d > 0 && d <= 28        = True
 >  | otherwise               = False
 > checkDate (d,m) _
->  | m > 0 && d > 0 && d <= 31  = True
->  | otherwise                  = False
+>  | m > 0 && m <= 12 && 
+>    d > 0 && d <= 31        = True
+>  | otherwise               = False
 
 Sum up days till given date
 
@@ -160,9 +161,9 @@ Add n to a triplet of chars
 >                     toEnum (mod b 26 + 65) :: Char,
 >                     toEnum (mod c 26 + 65) :: Char)
 >   where
->     c = fromEnum x - 65 + n
+>     c = fromEnum z - 65 + n
 >     b = fromEnum y - 65 + div c 26
->     a = fromEnum z - 65 + div b 26
+>     a = fromEnum x - 65 + div b 26
 
 Add n to a triplet of integers and return a "carry flag" as
 first element of a tuple
@@ -170,14 +171,30 @@ first element of a tuple
 > addInt :: Int -> (Int,Int,Int) -> (Int, (Int,Int,Int))
 > addInt n (x,y,z) = (div a 10, (mod a 10, mod b 10, mod c 10))
 >   where
->     c = x + n
+>     c = z + n
 >     b = y + div c 10
->     a = z + div b 10
+>     a = x + div b 10
+
+Check if an entered license plate is valid
+
+> valid :: Kennzeichen -> Bool
+> valid ((a,b,c),(x,y,z))
+>   | x >= 0 && y >= 0 && z >= 0 &&
+>     x <= 9 && y <= 9 && z <= 9 &&
+>     ae >= 65 && be >= 65 && ce >= 65 &&
+>     ae <= 90 && be <= 90 && ce <= 90    = True
+>   | otherwise                           = False
+>   where
+>     ae = fromEnum a
+>     be = fromEnum b
+>     ce = fromEnum c
 
 Return the next license plate
 
 > nf :: Kennzeichen -> Kennzeichen
-> nf ((a,b,c),(x,y,z)) = (charRes, snd intRes)
+> nf ((a,b,c),(x,y,z))
+>   | valid ((a,b,c),(x,y,z)) = (charRes, snd intRes)
+>   | otherwise               = ((a,b,c),(x,y,z))
 >   where
 >     intRes = addInt 1 (x,y,z)
 >     charRes = addChar (fst intRes) (a,b,c)
@@ -185,7 +202,9 @@ Return the next license plate
 Return the previous license plate
 
 > vg :: Kennzeichen -> Kennzeichen
-> vg ((a,b,c),(x,y,z)) = (charRes, snd intRes)
+> vg ((a,b,c),(x,y,z))
+>   | valid ((a,b,c),(x,y,z)) = (charRes, snd intRes)
+>   | otherwise               = ((a,b,c),(x,y,z))
 >   where
 >     intRes = addInt (-1) (x,y,z)
 >     charRes = addChar (fst intRes) (a,b,c)
