@@ -198,6 +198,32 @@ Convert integer to month
 > imonth :: Integer -> Monat
 > imonth m = toEnum (fromInteger m)
 
+Extensive use of pattern matching for checking if date
+is valid, probably not a good idea
+
+> checkDate :: Datum -> Schaltjahr -> Bool
+> checkDate (d,April,j) _
+>  | y >= 1 && y <= 30 = True
+>  | otherwise         = False
+>  where
+>    y = ntoi d
+> checkDate (d,Juni,j) _       = checkDate (d,April,j) False
+> checkDate (d,September,j) _  = checkDate (d,April,j) False
+> checkDate (d,November,j) _   = checkDate (d,April,j) False
+> checkDate (d,Feber,j) sj
+>  | sj && y >= 1 && y <= 29 = True
+>  | y > 0 && y <= 28        = True
+>  | otherwise               = False
+>  where
+>    y = ntoi d
+> checkDate (d,m,j) _
+>  | y > 0 && y <= 12 && 
+>    x > 0 && x <= 31        = True
+>  | otherwise               = False
+>  where
+>    x = ntoi d
+>    y = monthi m + 1
+
 Sum up days till given date (in a year)
 
 > sumDate :: Datum -> Schaltjahr -> Integer
@@ -210,6 +236,13 @@ Sum up days till given date (in a year)
 >  where
 >    days = [31,29,31,30,31,30,31,31,30,31,30,31]
 
+Check if a given year is a schaltjahr
+
+> schaltjahr :: Integer -> Bool
+> schaltjahr i = ((mod i 4) == 0 && (mod i 100) /= 0) ||
+>                ((mod i 4) == 0 && (mod i 100) == 0 && 
+>                 (mod i 400) == 0)
+
 Sum up days till given date (all years)
     
 > sumDateAll :: Datum -> Integer
@@ -218,12 +251,21 @@ Sum up days till given date (all years)
 >     ji    = ntoi j
 >     rj    = ji - 1
 >     sjNum = (div rj 4) - (div rj 100) + (div rj 400)
->     sj    = ((mod ji 4) == 0 && (mod ji 100) /= 0) ||
->             ((mod ji 4) == 0 && (mod ji 100) == 0 && 
->              (mod ji 400) == 0)
+>     sj    = schaltjahr ji
 >     y     = sumDate (d,m,j) sj
 
+Calculate day of the week for arbitrary date
+
 > wochentag4 :: Datum -> Wochentag -> Datum -> Wochentag
-> wochentag4 d1 day d2 = idays (mod ((daysi day) +
->                                    sumDateAll d2 -
->                                    sumDateAll d1) 7)
+> wochentag4 (d1,m1,j1) day (d2,m2,j2)
+>   | checkDate (d1,m1,j1) sj1 &&
+>     checkDate (d2,m2,j2) sj2 &&
+>     d >= 0                      = idays (mod (d + 
+>                                               sumDateAll (d2,m2,j2) - 
+>                                               sumDateAll (d1,m1,j1)) 
+>                                          7)
+>   | otherwise       = error "Falsche Argumente" 
+>   where
+>     d = daysi day
+>     sj1 = schaltjahr (ntoi j1)
+>     sj2 = schaltjahr (ntoi j2)
