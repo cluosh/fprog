@@ -1,3 +1,5 @@
+> module Aufgabe3 where
+
 -----------
   PART 1
 -----------
