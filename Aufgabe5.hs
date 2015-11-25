@@ -25,7 +25,10 @@ integerFromNat (Nat ((a,b,c),(d,e,f))) = x + y + z + u + v + w
 
 -- Convert Integer to Nat for faster calculation
 natFromInteger :: Integer -> Nat
-natFromInteger a = Nat ((b,c,d),(e,f,g))
+natFromInteger a
+  | a < 0               = Nat ((A,A,A),(Null,Null,Null))
+  | a < (toInteger max) = Nat ((b,c,d),(e,f,g))
+  | otherwise           = max
   where
     x = mod a 10
     y = div (mod a 100 - x) 10
@@ -39,6 +42,7 @@ natFromInteger a = Nat ((b,c,d),(e,f,g))
     e = toEnum (fromInteger z) 
     f = toEnum (fromInteger y)
     g = toEnum (fromInteger x)
+    max = Nat ((Z,Z,Z),(Neun,Neun,Neun))
 
 -- Inequality
 instance Eq Nat where
@@ -110,11 +114,17 @@ instance Integral Nat where
 -----------
 type PosRat = (Nat, Nat)
 
--- Define ggt on Nat
-ggT :: Int -> Int -> Int
+-- ggT implementation on integer
+ggT :: Integer -> Integer -> Integer
 ggT a b
   | b > 0  = ggT b (rem a b)
   | b <= 0 = a
+  
+-- kgV implementation on integer
+kgv :: Integer -> Integer -> Integer
+kgv _ 0 =  0
+kgv 0 _ =  0
+kgv a b =  (quot a (ggT a b)) * b
 
 -- Check if a rational number is canonical
 isCanPR :: PosRat -> Bool
@@ -122,46 +132,66 @@ isCanPR (a,b)
   | b > 0 && g == 1 = True
   | otherwise       = False
   where
-    g = ggT (fromEnum a) (fromEnum b)
+    g = ggT (toInteger a) (toInteger b)
 
 -- Make a rational number canoncial
 mkCanPR :: PosRat -> PosRat
 mkCanPR (a,b)
   | b > 0     = (div a g, div b g)
-  | otherwise = (fromInteger 0, fromInteger 0)
+  | otherwise = (0,0)
   where
-    g = toEnum (ggT (fromEnum a) (fromEnum b))
+    g = fromInteger (ggT (toInteger a) (toInteger b))
+    
+-- Transform two integers to a canonical PosRat
+mkCanIntPR :: Integer -> Integer -> PosRat
+mkCanIntPR a b
+  | b > 0     = (fromInteger qa, fromInteger qb)
+  | otherwise = (0,0)
+  where
+    g = ggT a b
+    qa = (quot a g)
+    qb = (quot b g)
 
 -- Addition of rational numbers
 plusPR :: PosRat -> PosRat -> PosRat
 plusPR (a,b) (x,y)
-  | b > 0 && y > 0 = mkCanPR (a1 * y1 + x1 * b1, b1 * y1)
+  | b > 0 && y > 0 = mkCanIntPR (a2 + x2) kg
   | otherwise      = (0,0)
   where
-    (a1,b1) = mkCanPR (a,b)
-    (x1,y1) = mkCanPR (x,y)
+    bi = toInteger b
+    yi = toInteger y
+    kg = kgv bi yi
+    a1 = (quot kg bi)
+    x1 = (quot kg yi)
+    a2 = a1 * toInteger a
+    x2 = x1 * toInteger x
   
 -- Subtraction of rational numbers
 minusPR :: PosRat -> PosRat -> PosRat
 minusPR (a,b) (x,y)
-  | b > 0 && y > 0 = mkCanPR (a * a1 - x * x1, toEnum kgv)
+  | b > 0 && y > 0 = mkCanIntPR (a2 - x2) kg
   | otherwise      = (0,0)
   where
-    be = toInteger (fromEnum b)
-    ye = toInteger (fromEnum y)
-    g = ggT be ye
-    kgv = div (be * ye) g
-    a1 = div kgv be
-    x1 = div kgv ye
+    bi = toInteger b
+    yi = toInteger y
+    kg = kgv bi yi
+    a1 = (quot kg bi)
+    x1 = (quot kg yi)
+    a2 = fromInteger (a1 * toInteger a)
+    x2 = fromInteger (x1 * toInteger x)
   
 -- Multiplication of rational numbers
 timesPR :: PosRat -> PosRat -> PosRat
 timesPR (a,b) (x,y)
-  | b > 0 && y > 0 = mkCanPR (a1 * x1,b1 * y1)
+  | b > 0 && y > 0 = mkCanIntPR (a2 * x2) (b2 * y2)
   | otherwise      = (0,0)
   where
     (a1,b1) = mkCanPR (a,b)
     (x1,y1) = mkCanPR (x,y)
+    a2 = toInteger a1
+    b2 = toInteger b1
+    x2 = toInteger x1
+    y2 = toInteger y1
   
 -- Division of rational numbers
 divPR :: PosRat -> PosRat -> PosRat
