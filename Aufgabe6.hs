@@ -71,11 +71,13 @@ instance Num Nat where
 	  res = integerFromNat a *
 	        integerFromNat b
 	  max = Nat ((Z,Z,Z),(Neun,Neun,Neun))
-  (-) a b = fromInteger (rem res (integerFromNat max + 1))
+  (-) a b
+    | res > 0   = fromInteger res
+    | otherwise = fromInteger ((rem res (max + 1)) + max + 1)
     where
       res = integerFromNat a -
             integerFromNat b
-      max = Nat ((Z,Z,Z),(Neun,Neun,Neun))
+      max = toInteger (Nat ((Z,Z,Z),(Neun,Neun,Neun)))
   signum a
 	| a > zero  = 1
 	| otherwise = 0
@@ -83,7 +85,9 @@ instance Num Nat where
 	  zero      = fromInteger 0
   abs a         = a
   negate a      = fromInteger 0
-  fromInteger a = natFromInteger a
+  fromInteger a = natFromInteger (rem a (max + 1))
+    where
+      max = toInteger (Nat ((Z,Z,Z),(Neun,Neun,Neun)))
   
 -- Bounded
 instance Bounded Nat where
@@ -103,9 +107,7 @@ instance Real Nat where
 
 -- Implementing instance of Integral for Nat
 instance Integral Nat where
-  rem a b
-    | a > b     = a - b
-    | otherwise = b - a
+  rem a b       = a - (div a b) * b
   div a b
     | b > 0     = fromInteger (div (toInteger a) (toInteger b))
     | otherwise = error "divide by zero"
@@ -203,10 +205,15 @@ edges (Gph [])     = []
 edges (Gph (x:xs)) = (edges (Gph xs)) ++ 
                      [(min y z, max y z) | y <- [fst x], z <- (snd x)]
 
--- Create all edges from nodes
+-- Create all edges from nodes (for cover)
 nedges :: [Node] -> [Edge]
-nedges (x:[]) = [(x,x)]
-nedges (x:xs) = [(x,y) | y <- xs] ++ nedges xs
+nedges []     = []
+nedges (x:xs) = [(x,y) | y <- ([x] ++ xs)] ++ nedges xs
+
+-- Create all edges from nodes (for independent)
+nedges2 :: [Node] -> [Edge]
+nedges2 []     = []
+nedges2 (x:xs) = [(x,y) | y <- xs] ++ nedges2 xs
 
 -- Common possible edges with all edges
 ecommon :: [Edge] -> [Edge] -> [Edge]
@@ -217,42 +224,16 @@ ecommon (x:xs) (y:ys)
   | x < y        = ecommon xs ([y] ++ ys)
   | otherwise    = ecommon ([x] ++ xs) ys
 
-graph1 = Gph [
-               (1,  [2, 7])
-             , (2,  [3])
-             , (3,  [2, 8])
-             , (4,  [5, 9])
-             , (5,  [6])
-             , (6,  [5, 11])
-             , (7,  [1, 14])
-             , (8,  [9, 16])
-             , (9,  [10])
-             , (10, [9, 11])
-             , (11, [19, 10, 12, 6])
-             , (12, [13, 20])
-             , (13, [21])
-             , (14, [7, 15])
-             , (15, [16])
-             , (16, [15, 17, 8])
-             , (17, [18])
-             , (18, [19])
-             , (19, [22, 11])
-             , (20, [23])
-             , (21, [24, 13])
-             , (22, [23])
-             , (24, [23])
-             ]
-
-
 -- Check if a list of nodes is an independent subset of a graph
 independent :: Graph -> [Node] -> Bool
+independent _ []                        = True
 independent g xs
   | (edistinct innodes gnodes) == [] &&
     (ecommon all gedges) == []          = True
   | otherwise                           = False
   where
     innodes = rdup (qs xs)
-    all = (nedges innodes)
+    all = (nedges2 innodes)
     gedges = rdup (qs (edges g))
     gnodes = rdup (qs (nodes g))
 
@@ -269,9 +250,11 @@ edistinct (x:xs) (y:ys)
 cover :: Graph -> [Node] -> Bool
 cover g xs
   | (edistinct innodes gnodes) == [] &&
-    independent g comp                  = True
+    (ecommon all gedges) == []          = True
   | otherwise                           = False
   where
     innodes = rdup (qs xs)
     gnodes = rdup (qs (nodes g))
+    gedges = rdup (qs (edges g))
     comp = edistinct gnodes innodes
+    all = nedges (rdup (qs comp))
