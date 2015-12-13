@@ -214,6 +214,88 @@ type Destination = Airports
 type Relation    = (Origin,Airlines,Destination)
 type Connection  = [Relation]
 
+nat0   = Nat ((A, A, A), (Null, Null, Null))
+nat1   = Nat ((A, A, A), (Null, Null, Eins))
+nat2   = Nat ((A, A, A), (Null, Null, Zwei))
+nat3   = Nat ((A, A, A), (Null, Null, Drei))
+nat4   = Nat ((A, A, A), (Null, Null, Vier))
+nat5   = Nat ((A, A, A), (Null, Null, Fuenf))
+nat8   = Nat ((A, A, A), (Null, Null, Acht))
+nat12  = Nat ((A, A, A), (Null, Eins, Zwei))
+nat13  = Nat ((A, A, A), (Null, Eins, Drei))
+nat15  = Nat ((A, A, A), (Null, Eins, Fuenf))
+nat20  = Nat ((A, A, A), (Null, Zwei, Null))
+nat23  = Nat ((A, A, A), (Null, Zwei, Drei))
+nat50  = Nat ((A, A, A), (Null, Fuenf, Null))
+nat100 = Nat ((A, A, A), (Eins, Null, Null))
+
+noFlyZone :: Networks
+noFlyZone _ _ = []
+
+network :: Networks
+network Aeroflot = aeroflot
+network AUA = aua
+network _ = (\_ -> [])
+
+extendedNetwork :: Networks
+extendedNetwork KLM = klm
+extendedNetwork airline = network airline
+
+aeroflot :: Airports -> [(Airports, Fare)]
+aeroflot AMS = [(HAM, nat2), (TXL, nat3)]
+aeroflot AUC = [(LAX, nat4), (SFO, nat15)]
+aeroflot DUS = [(FRA, nat1), (HAM, nat2)]
+aeroflot FRA = [(DUS, nat1), (JFK, nat2), (HAJ, nat1), (MUC, nat2), (VIE, nat1)]
+aeroflot HAJ = [(HAM, nat1), (FRA, nat1), (VIE, nat3)]
+aeroflot HAM = [(AMS, nat1), (DUS, nat2), (HAJ, nat1), (TXL, nat1)]
+aeroflot JFK = [(HAM, nat5), (LAX, nat20), (FRA, nat2), (SFO, nat2)]
+aeroflot LAX = [(AUC, nat4), (JFK, nat20), (LAX, nat50) ,(SFO, nat23),
+                (TXL, nat4)]
+aeroflot MUC = [(FRA, nat2), (SFO, nat3)]
+aeroflot SFO = [(AUC, nat15), (JFK, nat2), (LAX, nat23), (MUC, nat3),
+                (VIE, nat1)]
+aeroflot TXL = [(AMS, nat3), (HAM, nat1), (LAX, nat4), (VIE, nat4)]
+aeroflot VIE = [(FRA, nat1), (HAJ, nat3), (SFO, nat1), (TXL, nat4)]
+
+aua :: Airports -> [(Airports, Fare)]
+aua LAX = [(VIE, nat100)]
+aua _   = []
+
+klm :: Airports -> [(Airports, Fare)]
+klm AUC = [(LAX, nat3)]
+klm DUS = [(JFK, nat3), (VIE, nat3)]
+klm HAM = [(DUS, nat2)]
+klm JFK = [(AUC, nat3), (VIE, nat1)]
+klm LAX = [(HAM, nat1)]
+klm _   = []
+
+allianceAeroflotAUA :: Airlines -> [Airlines]
+allianceAeroflotAUA Aeroflot = [AUA]
+allianceAeroflotAUA AUA      = [Aeroflot]
+allianceAeroflotAUA _        = []
+
+allianceAll :: Airlines -> [Airlines]
+allianceAll _ = [minBound :: Airlines .. maxBound :: Airlines]
+
+-- Get all intermediate connections from a single airport/airline
+relOrigin :: Origin -> Networks -> Airlines -> [Relation]
+relOrigin o n al = map (\(x,y) -> (o,al,x)) $ n al o
+
+-- Get all connections from one airport to a destination with 
+-- a single airline
+allToDest :: Origin -> Destination -> Networks -> 
+             Airlines -> [Airports] -> [Relation]
+allToDest o d n al visited
+  | dest == [] = next rel ++ rel
+  | otherwise  = dest
+  where
+	rel    = relOrigin o n al
+	nvisit = visited ++ map (\(x,y,z) -> z) rel
+	dest   = filter (\(x,y,z) -> z == d) rel
+	ochk r = filter (\(x,y,z) -> not $ elem z visited) r
+	next r = foldl (++) [] $ 
+	         [allToDest z d n al nvisit | (x,y,z) <- ochk r]
+	
 -- Minimum layover
 airlineConnections :: Origin -> Destination -> Networks -> 
                       Airlines -> [Connection]
