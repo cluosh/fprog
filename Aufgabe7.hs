@@ -15,7 +15,6 @@ data Ziffer = Null | Eins | Zwei | Drei | Vier | Fuenf | Sechs |
               Sieben | Acht | Neun 
               deriving (Eq,Ord,Show,Read,Enum,Bounded)
 newtype Nat = Nat ((Zeichen,Zeichen,Zeichen),(Ziffer,Ziffer,Ziffer))
-              deriving (Eq,Ord,Show)
 
 -- Convert Nat to Integer for faster calculation
 integerFromNat :: Nat -> Integer
@@ -28,20 +27,97 @@ integerFromNat (Nat ((a,b,c),(d,e,f))) = x + y + z + u + v + w
     v = 26000 * (toInteger (fromEnum b))
     w = 676000 * (toInteger (fromEnum a))
 
--- Subsequences of size n
-zapWith f    xs     []  = xs
-zapWith f (x:xs) (y:ys) = f x y : zapWith f xs ys
-filterCombs :: ([a] -> Bool) -> Int -> [a] -> [[a]]
-filterCombs p n xs | n > length xs = [] 
-filterCombs p n xs = go xs id !! n where
-    go    []  ds = [[[]]]
-    go (x:xs) ds
-        | p (ds' []) = zapWith (++) ([] : map (map (x:)) with) without
-        | otherwise  = without
-        where
-            ds'     = ds . (x:)
-            with    = go xs ds'
-            without = go xs ds
+-- Convert Integer to Nat for faster calculation
+natFromInteger :: Integer -> Nat
+natFromInteger a
+  | a < 0               = Nat ((A,A,A),(Null,Null,Null))
+  | a < (toInteger max) = Nat ((b,c,d),(e,f,g))
+  | otherwise           = max
+  where
+    x = mod a 10
+    y = div (mod a 100 - x) 10
+    z = div (mod a 1000 - y - x) 100
+    u = div (mod a 26000 - z - y - x) 1000
+    v = div (mod a 676000 - u - z - y - x) 26000
+    w = div (a - v - u - z - y - x) 676000
+    b = toEnum (fromInteger w)
+    c = toEnum (fromInteger v)
+    d = toEnum (fromInteger u)
+    e = toEnum (fromInteger z) 
+    f = toEnum (fromInteger y)
+    g = toEnum (fromInteger x)
+    max = Nat ((Z,Z,Z),(Neun,Neun,Neun))
+
+-- Inequality
+instance Eq Nat where
+  Nat a /= Nat b = a /= b
+
+-- Comparison
+instance Ord Nat where
+  compare (Nat a) (Nat b) = compare a b
+    
+-- Show
+instance Show Nat where
+  show (Nat ((a,b,c),(x,y,z))) = "\"" ++ show a ++ show b ++ show c ++ 
+                                 " " ++ show (fromEnum x) ++ 
+                                 show (fromEnum y) ++ 
+                                 show (fromEnum z) ++ "\""
+
+-- Implementing instance of Num for Nat
+instance Num Nat where
+  (+) a b = fromInteger (rem res (integerFromNat max + 1))
+	where
+	  res = integerFromNat a + 
+	        integerFromNat b
+	  max = Nat ((Z,Z,Z),(Neun,Neun,Neun))
+  (*) a b = fromInteger (rem res (integerFromNat max + 1))
+	where
+	  res = integerFromNat a *
+	        integerFromNat b
+	  max = Nat ((Z,Z,Z),(Neun,Neun,Neun))
+  (-) a b
+    | res > 0   = fromInteger res
+    | otherwise = fromInteger ((rem res (max + 1)) + max + 1)
+    where
+      res = integerFromNat a -
+            integerFromNat b
+      max = toInteger (Nat ((Z,Z,Z),(Neun,Neun,Neun)))
+  signum a
+	| a > zero  = 1
+	| otherwise = 0
+	where
+	  zero      = fromInteger 0
+  abs a         = a
+  negate a      = fromInteger 0
+  fromInteger a = natFromInteger (rem a (max + 1))
+    where
+      max = toInteger (Nat ((Z,Z,Z),(Neun,Neun,Neun)))
+  
+-- Bounded
+instance Bounded Nat where
+  minBound      = Nat ((A,A,A),(Null,Null,Null))
+  maxBound      = Nat ((Z,Z,Z),(Neun,Neun,Neun))
+
+-- Implementing minimum enum instance for Nat
+instance Enum Nat where
+  toEnum a      = fromInteger (rem (toInteger a) 
+                  (toInteger (maxBound :: Nat) + 1))
+  fromEnum a    = fromIntegral (rem (toInteger a) 
+                  (toInteger (maxBound :: Nat) + 1))
+  
+-- Implementing minimum real instance for Nat
+instance Real Nat where
+  toRational a  = toRational (toInteger a)
+
+-- Implementing instance of Integral for Nat
+instance Integral Nat where
+  rem a b       = a - (div a b) * b
+  div a b
+    | b > 0     = fromInteger (div (toInteger a) (toInteger b))
+    | otherwise = error "divide by zero"
+  quotRem a b   = (div a b, rem a b)
+  toInteger a   = integerFromNat a
+  
 -- Quicksort for node or edge sorting
 qs :: Ord a => [a] -> [a]
 qs []     = []
@@ -277,6 +353,12 @@ allianceAeroflotAUA _        = []
 allianceAll :: Airlines -> [Airlines]
 allianceAll _ = [minBound :: Airlines .. maxBound :: Airlines]
 
+-- Implementation of partition (hoogle, Data.List)
+partition p xs = foldr (select p) ([],[]) xs
+select :: (a -> Bool) -> a -> ([a], [a]) -> ([a], [a])
+select p x ~(ts,fs) | p x       = (x:ts,fs)
+                    | otherwise = (ts, x:fs)
+
 -- Get all intermediate connections from a single airport/airline
 relOrigin :: Origin -> Networks -> Airlines -> [Relation]
 relOrigin o n al = map (\(x,y) -> (o,al,x)) $ n al o
@@ -289,22 +371,52 @@ allToDest o d n al visited
   | dest == [] = next rel ++ rel
   | otherwise  = dest
   where
-	rel    = relOrigin o n al
-	nvisit = visited ++ map (\(x,y,z) -> z) rel
-	dest   = filter (\(x,y,z) -> z == d) rel
-	ochk r = filter (\(x,y,z) -> not $ elem z visited) r
-	next r = foldl (++) [] $ 
-	         [allToDest z d n al nvisit | (x,y,z) <- ochk r]
-	
+    rel    = relOrigin o n al
+    nvisit = visited ++ map (\(x,y,z) -> z) rel
+    dest   = filter (\(x,y,z) -> z == d) rel
+    ochk r = filter (\(x,y,z) -> not $ elem z visited) r
+    next r = foldl (++) [] $ 
+             [allToDest z d n al nvisit | (x,y,z) <- ochk r]
+
+-- One single backtrace step
+bt :: Destination -> [Relation] -> ([Connection],[Relation])
+bt d l = (map (\x -> [x]) dest,other)
+  where
+    (dest,other) = partition (\(x,y,z) -> z == d) l
+
+-- Build connection list
+cmap :: Origin -> [Relation] -> [Connection] -> [Connection]
+cmap o rest cur
+  | done == [] = cmap o rest ncur
+  | otherwise  = done
+  where
+    ncur = foldl (++) [] $ map (\((a,b,c):xs) -> 
+           [u ++ v | u <- fst $ bt a rest, v <- [(a,b,c):xs]]) cur
+    done = filter (\((a,b,c):xs) -> a == o) cur
+
 -- Minimum layover
 airlineConnections :: Origin -> Destination -> Networks -> 
                       Airlines -> [Connection]
-airlineConnections _ _ _ _ = []
+airlineConnections o d n al
+  | all == [] || dest == [] = []
+  | otherwise               = cmap o rel conn
+  where
+    all        = rdup $ qs $ allToDest o d n al [o]
+    dest       = filter (\(a,b,c) -> c == d) all
+    (conn,rel) = bt d all
 
 -- Cheapest flight within alliance
 allianceConnections :: Origin -> Destination -> Networks -> 
                        Alliances -> Airlines -> [Connection]
-allianceConnections _ _ _ _ _ = []
+allianceConnections o d n alliance al
+  | all == [] || dest == [] = []
+  | otherwise               = cmap o rel conn
+  where
+    allAll     = foldl (++) [] $ 
+                 [rdup $ qs $ allToDest o d n x [o] | x <- alliance al]
+    all        = rdup $ qs $ allAll ++ allToDest o d n al [o]
+    dest       = filter (\(a,b,c) -> c == d) all
+    (conn,rel) = bt d all
 
 -- Cheapest flight overall
 cheapestConnections :: Origin -> Destination -> Networks -> 
