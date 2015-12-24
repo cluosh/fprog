@@ -247,10 +247,11 @@ dfs (Gph xs) (top:stack)
 
 -- Check for unconnected points
 unconnected :: Graph -> [Node]
-unconnected (Gph [])   = []
-unconnected (Gph (x:xs))
-  | (snd x) == []      = [fst x] ++ unconnected (Gph xs)
-  | otherwise          = unconnected (Gph xs)
+unconnected g = edistinct gnodes enodes
+  where
+    enodes = rdup $ qs $ foldl (++) [] $ map (\(x,y) -> [x,y]) $ edges g
+    gnodes = rdup $ qs $ nodes g
+    
 
 -- Check if a graph is connected
 isConnected :: Graph -> Bool
@@ -262,6 +263,21 @@ isConnected (Gph xs)
     dnodes = rdup (qs (dfs (Gph xs) fedges))
     x      = head xs
     fedges = [(y, z) | y <- [fst x], z <- (snd x)]
+    
+
+-- Use depth first search to check for circles
+-- dfs2 :: Graph -> [Edge] -> [Node] -> [Node]
+-- dfs2 (Gph []) [] _          = []
+-- dfs2 (Gph (x:xs)) [] _      = []
+-- dfs2 (Gph []) _ _           = []
+-- dfs2 (Gph xs) (top:stack) v
+--  | filterResult /= []      = (dfs2 (Gph negFilter) (nedges ++ stack))
+--  | otherwise               = [snd top] ++ (dfs2 (Gph xs) stack)
+--  where
+--    filterResult = filter ((==(snd top)).fst) xs
+--    negFilter    = filter ((/=(snd top)).fst) xs
+--    x            = head filterResult
+--    nedges       = [(y, z) | y <- [fst x], z <- (snd x)]
 
 -- Check if a graph is a tree
 isTree :: Graph -> Bool
